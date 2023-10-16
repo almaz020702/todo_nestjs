@@ -15,6 +15,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Payload } from "src/user/payload.interface";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { UpdateTaskDto } from "./dto/update-task.dto";
+import { User } from "src/user/user.decorator";
 
 @Controller("tasks")
 export class TasksController {
@@ -25,46 +26,34 @@ export class TasksController {
 
 	@Get("/")
 	@UseGuards(JwtAuthGuard)
-	async getAllTasks(@Req() req: Request) {
-		const userId = req.user.id;
-		if (!userId) {
-			return "User ID not found in cookies.";
-		}
-		return this.tasksService.getAllTasksByUserId(userId);
+	async getAllTasks(@User() user: Payload) {
+		return this.tasksService.getAllTasksByUserId(user.id);
 	}
 
 	@Post("/createTask")
 	@UseGuards(JwtAuthGuard)
-	async createTask(@Req() req: Request, @Body() taskDto: CreateTaskDto) {
-		const userId = req.user.id;
-		console.log(userId);
-		if (!userId) {
-			return "User ID not found in cookies.";
-		}
-		return this.tasksService.createTask(userId, taskDto);
+	async createTask(@User() user: Payload, @Body() taskDto: CreateTaskDto) {
+		return this.tasksService.createTask(user.id, taskDto);
 	}
 
 	@Get("/:taskId")
 	@UseGuards(JwtAuthGuard)
-	async getTaskById(@Req() req: Request) {
+	async getTaskById(@Req() req: Request, @User() user: Payload) {
 		const taskId = parseInt(req.params.taskId, 10);
-		const userId = req.user.id;
-		return this.tasksService.getTaskById(taskId, userId);
+		return this.tasksService.getTaskById(taskId, user.id);
 	}
 
 	@Put("/:taskId")
 	@UseGuards(JwtAuthGuard)
-	async updateTask(@Req() req: Request, @Body() updatedData: UpdateTaskDto) {
-		const userId = req.user.id;
+	async updateTask(@Req() req: Request, @Body() updatedData: UpdateTaskDto, @User() user: Payload) {
 		const taskId = parseInt(req.params.taskId);
-		return this.tasksService.updateTask(taskId, userId, updatedData);
+		return this.tasksService.updateTask(taskId, user.id, updatedData);
 	}
 
 	@Delete("/:taskId")
 	@UseGuards(JwtAuthGuard)
-	async deleteTask(@Req() req: Request) {
-		const userId = req.user.id;
+	async deleteTask(@Req() req: Request, @User() user: Payload) {
 		const taskId = parseInt(req.params.taskId);
-		return this.tasksService.deleteTask(taskId, userId);
+		return this.tasksService.deleteTask(taskId, user.id);
 	}
 }

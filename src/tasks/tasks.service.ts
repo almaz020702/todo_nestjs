@@ -7,10 +7,7 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 
 @Injectable()
 export class TasksService {
-	constructor(
-		private readonly prismaService: PrismaService,
-		private readonly jwtService: JwtService,
-	) {}
+	constructor(private readonly prismaService: PrismaService) {}
 
 	async getAllTasksByUserId(userId: number): Promise<Task[]> {
 		const tasks = await this.prismaService.task.findMany({
@@ -19,7 +16,7 @@ export class TasksService {
 		return tasks;
 	}
 
-	async createTask(userId: number, taskDto: CreateTaskDto): Promise<Task> {
+	async createTask(userId: number, taskDto: CreateTaskDto): Promise<void> {
 		const user = await this.prismaService.user.findUnique({
 			where: { id: userId },
 		});
@@ -27,13 +24,12 @@ export class TasksService {
 			throw new NotFoundException(`User with ID ${userId} not found`);
 		}
 
-		const task = await this.prismaService.task.create({
+		await this.prismaService.task.create({
 			data: {
 				...taskDto,
 				userId,
 			},
 		});
-		return task;
 	}
 
 	async getTaskById(taskId: number, userId: number): Promise<Task> {
@@ -50,7 +46,7 @@ export class TasksService {
 		taskId: number,
 		userId: number,
 		updatedTaskData: UpdateTaskDto,
-	): Promise<Task> {
+	): Promise<void> {
 		const taskToUpdate = await this.prismaService.task.findUnique({
 			where: { id: taskId, userId },
 		});
@@ -58,16 +54,12 @@ export class TasksService {
 			throw new NotFoundException(`Task with ID ${taskId} not found`);
 		}
 
-		const updatedTask = await this.prismaService.task.update({
+		await this.prismaService.task.update({
 			where: { id: taskId },
 			data: {
-				title: updatedTaskData.title,
-				completed: updatedTaskData.completed,
-				dueDate: updatedTaskData.dueDate,
+				...updatedTaskData,
 			},
 		});
-
-		return updatedTask;
 	}
 
 	async deleteTask(taskId: number, userId: number) {

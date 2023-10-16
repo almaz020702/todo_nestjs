@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import {
+	BadRequestException,
+	HttpException,
+	HttpStatus,
+	Injectable,
+} from "@nestjs/common";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { PrismaService } from "src/prisma/prisma.service";
 import * as bcrypt from "bcryptjs";
@@ -17,9 +22,8 @@ export class UserService {
 			where: { email: userData.email },
 		});
 		if (candidate) {
-			throw new HttpException(
+			throw new BadRequestException(
 				"User with this email already exists",
-				HttpStatus.BAD_REQUEST,
 			);
 		}
 		const hashedPassword = await bcrypt.hash(userData.password, 5);
@@ -29,14 +33,8 @@ export class UserService {
 				password: hashedPassword,
 			},
 		});
-		const token = this.jwtService.sign({
-			id: user.id,
-			email: user.email,
-		});
-		res.cookie("accessToken", token, {
-			maxAge: 60 * 60 * 1000,
-			httpOnly: true,
-		});
+		const token = this.generateAccessToken(user);
+		this.setAccessTokenCookie(res, token);
 		return {
 			message: "User registration successful",
 			user: {
@@ -52,29 +50,24 @@ export class UserService {
 			where: { email: userData.email },
 		});
 		if (!candidate) {
-			throw new HttpException(
+			throw new BadRequestException(
 				"User with this email does not exist",
-				HttpStatus.BAD_REQUEST,
 			);
 		}
-		const comparePassword = bcrypt.compareSync(
+		const isPasswordValid = await this.comparePasswords(
 			userData.password,
 			candidate.password,
 		);
-		if (!comparePassword) {
+		if (!isPasswordValid) {
 			throw new HttpException(
 				"Password is incorrect",
 				HttpStatus.BAD_REQUEST,
 			);
 		}
-		const token = this.jwtService.sign({
-			id: candidate.id,
-			email: candidate.email,
-		});
-		res.cookie("accessToken", token, {
-			maxAge: 60 * 60 * 1000,
-			httpOnly: true,
-		});
+		const token = this.generateAccessToken(candidate);
+
+		this.setAccessTokenCookie(res, token);
+
 		return {
 			message: "User login is successful",
 			user: {
@@ -85,10 +78,31 @@ export class UserService {
 		};
 	}
 
-	async logout(res: Response){
-		res.clearCookie('accessToken')
+	private async comparePasswords(
+		plainPassword: string,
+		hashedPassword: string,
+	): Promise<boolean> {
+		return bcrypt.compare(plainPassword, hashedPassword);
+	}
+
+	private generateAccessToken(user: any): string {
+		return this.jwtService.sign({
+			id: user.id,
+			email: user.email,
+		});
+	}
+
+	private setAccessTokenCookie(res: Response, token: string) {
+		res.cookie("accessToken", token, {
+			maxAge: 60 * 60 * 1000, // 1 hour
+			httpOnly: true,
+		});
+	}
+
+	async logout(res: Response) {
+		res.clearCookie("accessToken");
 		return {
-			message: "User logout is succesfull"
+			message: "User logout is succesfull",
 		};
 	}
 }

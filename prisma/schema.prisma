@@ -11,7 +11,7 @@ model User {
     id       Int    @id @default(autoincrement())
     email    String @unique
     password String
-    tasks    Task[]
+    tasks    Task[] 
 }
 
 model Task {
@@ -20,5 +20,5 @@ model Task {
     title     String
     completed Boolean  @default(false)
     dueDate   DateTime?
-    User      User     @relation(fields: [userId], references: [id])
+    User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }

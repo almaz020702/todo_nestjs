@@ -25,6 +25,11 @@ export class JwtAuthGuard implements CanActivate {
 				});
 			}
 			const payload: Payload = this.jwtService.verify(token);
+			if (!payload) {
+				throw new UnauthorizedException({
+					message: "Incorrect accessToken",
+				});
+			}
 			req.user = payload;
 
 			return true;
